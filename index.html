@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a12">
+<title>BookBreak — Understand Any Book in Minutes</title>
+<meta name="description" content="Type a book name, get the complete breakdown: big ideas, takeaways, quotes & more.">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<style>
+:root{
+  --bg:#0a0a12; --panel:#13131f; --panel2:#1a1a2a; --border:#26263a;
+  --text:#eeecf7; --muted:#9b98b6; --acc:#a78bfa; --pink:#ec4899;
+  --grad:linear-gradient(135deg,#8b5cf6,#ec4899);
+  --green:#34d399; --amber:#fbbf24; --blue:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:
+  radial-gradient(600px 340px at 15% -5%,rgba(139,92,246,.16),transparent 60%),
+  radial-gradient(600px 340px at 85% -5%,rgba(236,72,153,.12),transparent 60%);}
+.wrap{max-width:900px;margin:0 auto;padding:0 18px}
+header.top{padding:26px 0 6px}
+.toprow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{width:46px;height:46px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 6px 22px rgba(139,92,246,.4);flex:0 0 auto}
+h1{font-size:1.5rem;letter-spacing:.2px}
+h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tagline{color:var(--muted);font-size:.9rem}
+.headbtns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+nav.tabs{display:flex;gap:8px;margin:18px 0 22px;overflow-x:auto;position:sticky;top:0;z-index:10;background:linear-gradient(180deg,var(--bg) 82%,transparent);padding-top:10px;padding-bottom:4px}
+.tab{white-space:nowrap;border:1px solid var(--border);background:var(--panel);color:var(--muted);padding:9px 16px;border-radius:999px;cursor:pointer;font-size:.92rem;font-weight:600;transition:.15s}
+.tab:hover{color:var(--text);border-color:#3a3a58}
+.tab.active{background:var(--grad);color:#fff;border-color:transparent}
+section{display:none;padding-bottom:56px}
+section.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;transition:.15s}
+.card:hover{border-color:#38385a}
+h2{font-size:1.25rem;margin-bottom:4px}
+h3{font-size:1rem;margin:0 0 8px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.sub{color:var(--muted);font-size:.88rem;margin-bottom:16px}
+.btn{border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:9px 15px;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:600;transition:.15s;font-family:inherit}
+.btn:hover{border-color:var(--acc);color:#fff}
+.btn-grad{background:var(--grad);border:none;color:#fff;box-shadow:0 4px 14px rgba(139,92,246,.35)}
+.btn-grad:hover{filter:brightness(1.12)}
+.btn-grad:disabled{opacity:.55;cursor:wait;filter:none}
+.btn-sm{padding:5px 10px;font-size:.75rem;border-radius:8px}
+.btn-copy{margin-left:auto}
+input[type=text],select,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px 13px;font-size:.92rem;font-family:inherit;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+label.flabel{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin:0 0 3px 2px}
+.searchbar{background:var(--panel);border:1px dashed #3a3a58;border-radius:18px;padding:16px;margin-bottom:20px}
+.searchbar .row{display:flex;gap:10px;flex-wrap:wrap}
+.searchbar .row>*{flex:1;min-width:150px}
+.chip{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(167,139,250,.14);color:var(--acc);border:1px solid rgba(167,139,250,.3)}
+.chip-pink{background:rgba(236,72,153,.13);color:var(--pink);border:1px solid rgba(236,72,153,.3)}
+.chip-blue{background:rgba(96,165,250,.13);color:var(--blue);border:1px solid rgba(96,165,250,.3)}
+.herocard{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.12));border:1px solid rgba(167,139,250,.4);border-radius:18px;padding:20px;margin-bottom:16px}
+.herocard .title{font-size:1.5rem;font-weight:800;line-height:1.25}
+.herocard .author{color:var(--muted);margin:2px 0 10px}
+.herocard .oneline{font-size:1.08rem;font-weight:600;margin-top:8px}
+.herocard .oneline::before{content:"“"}.herocard .oneline::after{content:"”"}
+.cover{width:88px;height:130px;border-radius:10px;object-fit:cover;background:var(--panel2);flex:0 0 auto;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+.idea{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.idea:last-child{border-bottom:none}
+.idea .n{width:26px;height:26px;border-radius:8px;background:var(--grad);color:#fff;font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-top:2px}
+.idea b{display:block;font-size:.98rem}
+.idea .why{color:#cfcbe2;font-size:.88rem;margin-top:2px}
+.tk{display:flex;gap:10px;padding:7px 0;align-items:flex-start;font-size:.94rem}
+.tk::before{content:"✔";color:var(--green);font-weight:700;flex:0 0 auto}
+.quote{border-left:3px solid var(--pink);padding:8px 0 8px 14px;margin:12px 0}
+.quote .q{font-style:italic;font-size:.98rem}
+.quote .w{color:var(--muted);font-size:.82rem;margin-top:3px}
+.person{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.person:last-child{border-bottom:none}
+.person .pi{width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1rem;flex:0 0 auto}
+.person b{font-size:.95rem}
+.person .pn{color:#cfcbe2;font-size:.86rem}
+.dq{padding:8px 0 8px 24px;position:relative;font-size:.94rem}
+.dq::before{content:"❓";position:absolute;left:0;top:8px;font-size:.85rem}
+em.sec{color:var(--muted)}
+.librow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:.13s}
+.librow:hover{border-color:var(--acc)}
+.librow .lt{flex:1;min-width:0}
+.librow .lt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.librow .lt span{font-size:.8rem;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:36px 12px;border:1px dashed var(--border);border-radius:14px;font-size:.92rem}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--acc);color:var(--text);padding:11px 20px;border-radius:12px;font-size:.88rem;font-weight:600;opacity:0;transition:.25s;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.loadingcard{background:var(--panel);border:1px solid rgba(167,139,250,.4);border-radius:18px;padding:32px;text-align:center;margin-bottom:16px}
+.spin{width:42px;height:42px;border-radius:50%;border:4px solid var(--panel2);border-top-color:var(--pink);margin:0 auto 14px;animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4);color:#fecaca;border-radius:14px;padding:14px 16px;font-size:.9rem;margin-bottom:14px}
+.err b{color:#f87171}
+.ok{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.35);color:#b7f4dd;border-radius:14px;padding:12px 16px;font-size:.88rem;margin-bottom:14px}
+.note{font-size:.8rem;color:var(--muted);margin-top:8px}
+footer{color:var(--muted);font-size:.78rem;text-align:center;padding:0 0 34px}
+.secnum{color:var(--muted);font-size:.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+@media(max-width:560px){h1{font-size:1.25rem}.herocard .title{font-size:1.2rem}.headbtns{margin-left:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="toprow">
+    <div class="logo">📚</div>
+    <div>
+      <h1>Book<span class="grad">Break</span></h1>
+      <div class="tagline">Type a book name → understand everything 📖✨</div>
+    </div>
+    <div class="headbtns">
+      <button class="btn btn-sm" data-action="export">⤓ Backup</button>
+      <button class="btn btn-sm" data-action="import">⤒ Restore</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-action="tab" data-tab="break">🔍 Break a Book</button>
+  <button class="tab" data-action="tab" data-tab="library">📚 My Library</button>
+  <button class="tab" data-action="tab" data-tab="settings">⚙️ Setup</button>
+</nav>
+
+<main>
+<!-- ============ BREAK ============ -->
+<section id="sec-break" class="active">
+  <div class="searchbar">
+    <div class="row">
+      <div><label class="flabel">Book title *</label><input type="text" id="qTitle" placeholder="e.g. Atomic Habits" ></div>
+      <div><label class="flabel">Author (helps accuracy)</label><input type="text" id="qAuthor" placeholder="e.g. James Clear"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn btn-grad" data-action="go" id="goBtn" style="width:100%;padding:12px">✨ Break it down for me</button>
+    </div>
+    <div class="note">Works for fiction &amp; nonfiction. Obscure book? Add the author for a better match. Needs your free Gemini key — see ⚙️ Setup (1-minute, $0).</div>
+  </div>
+  <div id="result"></div>
+</section>
+
+<!-- ============ LIBRARY ============ -->
+<section id="sec-library">
+  <h2>📚 My Library</h2>
+  <div class="sub">Every book you break down saves here automatically — your personal study shelf. Tap to reopen.</div>
+  <div id="libList"></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="sec-settings">
+  <h2>⚙️ Setup (one time, free)</h2>
+  <div class="sub">BookBreak runs on Google's free Gemini AI. Grab a free key once, paste it here — it saves on this device only.</div>
+  <div class="card">
+    <h3>🔑 Your Gemini API key</h3>
+    <ol style="margin:0 0 12px 20px;font-size:.9rem;color:#cfcbe2;display:flex;flex-direction:column;gap:4px">
+      <li>Go to <b>aistudio.google.com</b> (sign in with your Google account)</li>
+      <li>Click <b>"Get API key"</b> → <b>"Create API key"</b></li>
+      <li>Copy it and paste below 👇 that's it, done forever</li>
+    </ol>
+    <input type="text" id="apiKey" placeholder="Paste your key here (starts with AIza...)">
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-grad" data-action="saveKey">💾 Save key</button>
+      <button class="btn" data-action="clearKey">🗑 Remove</button>
+    </div>
+    <div id="keyStatus" style="margin-top:10px"></div>
+    <div class="note">🔒 The key lives in your browser's local storage on this device — it's never sent anywhere except straight to Google when you break a book. Free tier is ~1,000+ requests/day, more than plenty.</div>
+  </div>
+  <div class="card">
+    <h3>🤖 Model</h3>
+    <div class="note" style="margin:0 0 8px">Default is the free fast one. If you ever hit limits, switch to flash-lite.</div>
+    <select id="modelSel">
+      <option value="gemini-2.5-flash">gemini-2.5-flash (recommended)</option>
+      <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (highest free quota)</option>
+      <option value="gemini-2.0-flash">gemini-2.0-flash (fallback)</option>
+    </select>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-action="saveModel">💾 Save model</button></div>
+  </div>
+  <div class="card">
+    <h3>📚 What counts as a "breakdown"?</h3>
+    <div style="font-size:.9rem;color:#cfcbe2">
+      BookBreak gives you AI-generated study notes — ideas, themes, characters &amp; summaries, like a personal SparkNotes. It's for understanding a book (or deciding to read it), never a replacement for reading the real thing. 💜
+    </div>
+  </div>
+</section>
+</main>
+<footer>BookBreak 📚 · understand any book in minutes · your library stays on your device — use Backup to save a copy</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =================== STATE =================== */
+const LSK={lib:"bookbreak.lib",key:"bookbreak.key",model:"bookbreak.model"};
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let library=load(LSK.lib,[]);
+let apiKey=load(LSK.key,"");
+let model=load(LSK.model,"gemini-2.5-flash");
+let current=null; // currently displayed breakdown
+
+/* =================== HELPERS =================== */
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let toastT;
+function showToast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800)}
+async function copyText(t){try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(_){};ta.remove()}showToast("Copied ✓")}
+
+/* =================== PROMPT =================== */
+function buildPrompt(title,author){
+return `You are BookBreak, a precise, friendly book explainer. The user gives a book title${author?" and author":""}.
+
+Book title: "${title}"${author?`\nAuthor: "${author}"`:""}
+
+Return ONLY valid JSON (no markdown, no code fences) with EXACTLY these keys:
+{
+ "title": "correct full book title",
+ "author": "author name(s)",
+ "year": "first published year or best estimate",
+ "genre": "e.g. Self-help / Novel / Biography",
+ "oneLiner": "the entire book's core idea in ONE sharp sentence",
+ "summary60": "a ~60-word speed summary someone could read in 15 seconds",
+ "overview": "150-200 word plain-English explanation of what the book is about and how it unfolds. Avoid major plot-ending spoilers for fiction.",
+ "mainIdeas": [{"idea":"short title","why":"1-2 sentences: what it means / why it matters"}], // 5-7 items
+ "takeaways": ["7 concrete things to remember or apply, each one sentence"],
+ "cast": [{"name":"name or concept","note":"one-line role or meaning"}], // fiction: 4-6 main characters. nonfiction: 4-6 core concepts/terms with plain definitions
+ "quotes": [{"text":"short famous line or paraphrased big quote","why":"one line on why it's remembered"}], // 3 max
+ "shouldRead": "who this book is perfect for, when to read it, and when to skip it — 2-3 honest sentences",
+ "discussion": ["5 book-club style questions that spark real thought"],
+ "funFact": "one surprising fact about the book or author"
+}
+
+If the title is ambiguous or unknown, pick the most famous match and note your uncertainty inside overview's last sentence. Rules: be accurate, zero fluff, plain language a smart 14-year-old would get.`;
+}
+
+/* =================== GEMINI CALL =================== */
+async function breakBook(title,author){
+  const key=apiKey.trim();
+  if(!key){return{error:"No API key yet — go to ⚙️ Setup and paste your free Gemini key (takes 1 minute)."}}
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),60000);
+  let res;
+  try{
+    res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl.signal,
+      body:JSON.stringify({contents:[{parts:[{text:buildPrompt(title,author)}]}],
+        generationConfig:{responseMimeType:"application/json",temperature:0.35,maxOutputTokens:4096}})});
+  }catch(e){
+    clearTimeout(to);
+    return{error:e.name==="AbortError"?"Google took too long — tap Break it down again.":"Network hiccup — check your connection and try again."};
+  }
+  clearTimeout(to);
+  if(!res.ok){
+    const t=await res.text().catch(()=> "" );
+    if(res.status===400&&/API key/i.test(t))return{error:"That API key doesn't look right. Re-copy it from aistudio.google.com and paste it in ⚙️ Setup."};
+    if(res.status===403)return{error:"Key blocked (403). Make sure the key from aistudio.google.com is pasted exactly in ⚙️ Setup."};
+    if(res.status===404)return{error:"Model not found — switch the model in ⚙️ Setup (try gemini-2.5-flash-lite)."};
+    if(res.status===429)return{error:"Free quota hit for the moment 🥲 wait ~60 seconds and try again, or switch to flash-lite in Setup."};
+    return{error:"Google returned an error ("+res.status+"). Try again in a sec."};
+  }
+  let data;
+  try{data=await res.json()}catch(e){return{error:"Couldn't read Google's reply — try once more."}}
+  let txt=data?.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||"";
+  txt=txt.trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();
+  if(!txt)return{error:"Empty reply — try adding the author's name for a better match."};
+  try{
+    const d=JSON.parse(txt);
+    return{data:d};
+  }catch(e){
+    return{error:"The AI answer came back messy — tap Break it down again (usually fixes it)."};
+  }
+}
+
+/* =================== COVER (Google Books, free) =================== */
+async function findCover(title,author){
+  try{
+    const q=encodeURIComponent("intitle:"+title+(author?"+inauthor:"+author:""));
+    const r=await fetch("https://www.googleapis.com/books/v1/volumes?q="+q+"&maxResults=1&fields=items(volumeInfo(imageLinks))");
+    const j=await r.json();
+    const img=j?.items?.[0]?.volumeInfo?.imageLinks;
+    return(img?.thumbnail||img?.smallThumbnail||"").replace("http://","https://");
+  }catch(e){return""}
+}
+
+/* =================== RENDER =================== */
+function plainText(d){
+  const L=[];
+  L.push((d.title||"")+" — "+(d.author||"")+(d.year?" ("+d.year+")":"")+(d.genre?" · "+d.genre:""));
+  L.push("\n⚡ IN ONE SENTENCE\n"+(d.oneLiner||""));
+  L.push("\n⏱ 60-SECOND VERSION\n"+(d.summary60||""));
+  L.push("\n🗺 THE BIG PICTURE\n"+(d.overview||""));
+  if(d.mainIdeas?.length){L.push("\n💡 MAIN IDEAS");d.mainIdeas.forEach((x,i)=>L.push((i+1)+". "+x.idea+" — "+x.why))}
+  if(d.takeaways?.length){L.push("\n✅ KEY TAKEAWAYS");d.takeaways.forEach(x=>L.push("• "+x))}
+  if(d.cast?.length){L.push("\n🎭 CHARACTERS / CORE CONCEPTS");d.cast.forEach(x=>L.push("• "+x.name+": "+x.note))}
+  if(d.quotes?.length){L.push("\n💬 QUOTES TO REMEMBER");d.quotes.forEach(x=>L.push("“"+x.text+"” — "+x.why))}
+  L.push("\n🎯 SHOULD YOU READ IT?\n"+(d.shouldRead||""));
+  if(d.discussion?.length){L.push("\n❓ DISCUSSION QUESTIONS");d.discussion.forEach((x,i)=>L.push((i+1)+". "+x))}
+  if(d.funFact)L.push("\n🤯 FUN FACT\n"+d.funFact);
+  return L.join("\n").replace(/\u2019/g,"'");
+}
+
+function renderBreakdown(d,cover,fromLib){
+  current={d,cover};
+  const el=document.getElementById("result");
+  el.innerHTML=`
+  <div class="herocard">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      ${cover?`<img class="cover" src="${esc(cover)}" alt="">`:""}
+      <div style="min-width:0">
+        <div class="title">${esc(d.title)}</div>
+        <div class="author">by ${esc(d.author||"Unknown")}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${d.year?`<span class="chip chip-blue">${esc(d.year)}</span>`:""}
+          ${d.genre?`<span class="chip">${esc(d.genre)}</span>`:""}
+        </div>
+        <div class="oneline">${esc(d.oneLiner||"")}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-grad" data-action="copyAll">⧉ Copy full breakdown</button>
+      ${fromLib?"":`<button class="btn btn-sm" data-action="saveLib">💾 Save to library</button>`}
+    </div>
+  </div>
+  ${sec("⏱","60-Second Version",`<div style="font-size:.95rem">${esc(d.summary60||"")}</div>`,d.summary60)}
+  ${sec("🗺","The Big Picture",`<div style="font-size:.95rem">${esc(d.overview||"")}</div>`,d.overview)}
+  ${d.mainIdeas?.length?sec("💡","Main Ideas — decoded",d.mainIdeas.map((x,i)=>`
+    <div class="idea"><div class="n">${i+1}</div><div><b>${esc(x.idea)}</b><div class="why">${esc(x.why)}</div></div></div>`).join(""),
+    d.mainIdeas.map((x,i)=>(i+1)+". "+x.idea+" — "+x.why).join("\n")):""}
+  ${d.takeaways?.length?sec("✅","Key Takeaways",d.takeaways.map(x=>`<div class="tk">${esc(x)}</div>`).join(""),
+    d.takeaways.map(x=>"• "+x).join("\n")):""}
+  ${d.cast?.length?sec("🎭",d.genre&&/novel|fiction|fantasy|thriller|romance|sci/i.test(d.genre)?"Who's Who":"Core Concepts",
+    d.cast.map(x=>`<div class="person"><div class="pi">${/novel|fiction|fantasy|thriller|romance|sci/i.test(d.genre||"")?"🙂":"🧠"}</div><div><b>${esc(x.name)}</b><div class="pn">${esc(x.note)}</div></div></div>`).join(""),
+    d.cast.map(x=>"• "+x.name+": "+x.note).join("\n")):""}
+  ${d.quotes?.length?sec("💬","Quotes to Remember",d.quotes.map(x=>`
+    <div class="quote"><div class="q">“${esc(x.text)}”</div><div class="w">${esc(x.why)}</div></div>`).join(""),
+    d.quotes.map(x=>"\""+x.text+"\" — "+x.why).join("\n")):""}
+  ${sec("🎯","Should You Read It?",`<div style="font-size:.95rem">${esc(d.shouldRead||"")}</div>`,d.shouldRead)}
+  ${d.discussion?.length?sec("❓","Talk About It (book-club fuel)",d.discussion.map(x=>`<div class="dq">${esc(x)}</div>`).join(""),
+    d.discussion.map((x,i)=>(i+1)+". "+x).join("\n")):""}
+  ${d.funFact?`<div class="card" style="border-color:rgba(236,72,153,.4)"><span class="chip chip-pink">🤯 FUN FACT</span><div style="margin-top:8px;font-size:.95rem">${esc(d.funFact)}</div></div>`:""}
+  <div class="note" style="text-align:center;margin-top:6px">AI study notes — for understanding, not a substitute for reading the book itself 📖</div>`;
+}
+function sec(icon,title,inner,copyTxt){
+  return `<div class="card"><h3><span>${icon} ${esc(title)}</span>${copyTxt?`<button class="btn btn-sm btn-copy" data-action="copySec" data-t="${encodeURIComponent(copyTxt)}">⧉ Copy</button>`:""}</h3>${inner}</div>`
+}
+
+const LOAD_MSGS=["📖 Flipping to the good parts…","💡 Finding the big ideas…","✍️ Writing your cheat notes…","🔍 Connecting the themes…","💬 Picking the best quotes…"];
+function renderLoading(){
+  let i=0;const el=document.getElementById("result");
+  el.innerHTML=`<div class="loadingcard"><div class="spin"></div><div id="lm" style="font-weight:700">${LOAD_MSGS[0]}</div><div class="note">breaking the book down… ~10-20 seconds</div></div>`;
+  window._lt=setInterval(()=>{i=(i+1)%LOAD_MSGS.length;const m=document.getElementById("lm");if(m)m.textContent=LOAD_MSGS[i]},2100);
+}
+function stopLoading(){clearInterval(window._lt)}
+function renderError(msg){
+  document.getElementById("result").innerHTML=`<div class="err"><b>Oops:</b> ${esc(msg)}</div>`;
+}
+
+/* =================== LIBRARY =================== */
+function renderLib(){
+  const el=document.getElementById("libList");
+  if(!library.length){el.innerHTML=`<div class="empty">No books broken down yet 📚<br><br>Your shelf fills up automatically after each breakdown.</div>`;return}
+  el.innerHTML=[...library].sort((a,b)=>b.added-a.added).map(b=>`
+    <div class="librow" data-action="openLib" data-id="${b.id}">
+      <span style="font-size:1.4rem">📕</span>
+      <div class="lt"><b>${esc(b.d.title)}</b><span>${esc(b.d.author||"")}${b.d.genre?" · "+esc(b.d.genre):""} · ${new Date(b.added).toLocaleDateString()}</span></div>
+      <button class="btn btn-sm" data-action="delLib" data-id="${b.id}">🗑</button>
+    </div>`).join("");
+}
+
+/* =================== KEY STATUS =================== */
+function renderKeyStatus(){
+  const ks=document.getElementById("keyStatus");
+  ks.innerHTML=apiKey.trim()?`<div class="ok">✅ Key saved — you're ready to break books! Head to <b>🔍 Break a Book</b>.</div>`:"";
+  document.getElementById("apiKey").value=apiKey;
+  document.getElementById("modelSel").value=model;
+}
+
+/* =================== TABS =================== */
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+  document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
+  document.getElementById("sec-"+t).classList.add("active");
+  if(t==="library")renderLib();
+  if(t==="settings")renderKeyStatus();
+  try{history.replaceState(null,"","#"+t)}catch(e){}
+}
+
+/* =================== MAIN ACTION =================== */
+async function go(){
+  const title=document.getElementById("qTitle").value.trim();
+  const author=document.getElementById("qAuthor").value.trim();
+  if(!title){showToast("Type a book title first 📕");return}
+  const btn=document.getElementById("goBtn");btn.disabled=true;
+  renderLoading();
+  const[cover,res]=await Promise.all([findCover(title,author),breakBook(title,author)]);
+  stopLoading();btn.disabled=false;
+  if(res.error){renderError(res.error);return}
+  renderBreakdown(res.data,cover,false);
+  // autosave to library
+  const id="b"+Date.now();
+  library.push({id,d:res.data,cover,added:Date.now()});
+  if(library.length>80)library=library.slice(-80);
+  save(LSK.lib,library);
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* =================== EVENTS =================== */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-action]");if(!el)return;
+  const a=el.dataset.action;
+  if(a==="tab")switchTab(el.dataset.tab);
+  else if(a==="go")go();
+  else if(a==="copyAll"&&current)copyText(plainText(current.d));
+  else if(a==="copySec")copyText(decodeURIComponent(el.dataset.t));
+  else if(a==="saveLib")showToast("Already auto-saved to your library ✅");
+  else if(a==="openLib"){
+    const b=library.find(x=>x.id===el.dataset.id);if(!b)return;
+    switchTab("break");renderBreakdown(b.d,b.cover,true);window.scrollTo({top:0,behavior:"smooth"});
+  }
+  else if(a==="delLib"){
+    e.stopPropagation();
+    library=library.filter(x=>x.id!==el.dataset.id);save(LSK.lib,library);renderLib();showToast("Removed from library");
+  }
+  else if(a==="saveKey"){apiKey=document.getElementById("apiKey").value.trim();save(LSK.key,apiKey);renderKeyStatus();showToast(apiKey?"Key saved ✅":"Key cleared")}
+  else if(a==="clearKey"){apiKey="";save(LSK.key,apiKey);renderKeyStatus();showToast("Key removed")}
+  else if(a==="saveModel"){model=document.getElementById("modelSel").value;save(LSK.model,model);showToast("Model saved ✅")}
+  else if(a==="export"){
+    const blob=new Blob([JSON.stringify({library,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});
+    const a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="bookbreak-backup.json";a2.click();URL.revokeObjectURL(a2.href);
+    showToast("Backup downloaded ⤓");
+  }
+  else if(a==="import"){document.getElementById("importFile").click()}
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&(e.target.id==="qTitle"||e.target.id==="qAuthor")){e.preventDefault();go()}
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="importFile"){
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{try{const d=JSON.parse(r.result);library=d.library||[];save(LSK.lib,library);renderLib();showToast("Library restored ✓")}catch(err){showToast("That file doesn't look right 😕")}};
+    r.readAsText(f);e.target.value="";
+  }
+});
+
+/* =================== INIT =================== */
+(function init(){
+  renderLib();
+  const h=(location.hash||"").replace("#","");
+  if(["break","library","settings"].includes(h))switchTab(h);
+  // prefill a friendly first example so the box never looks empty
+  document.getElementById("qTitle").placeholder="e.g. Atomic Habits, Rich Dad Poor Dad, The Alchemist…";
+})();
+</script>
+</body>
+</html>
