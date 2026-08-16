@@ -45,6 +45,7 @@ h3{font-size:1rem;margin:0 0 8px;display:flex;align-items:center;gap:8px;justify
 .btn-grad{background:var(--grad);border:none;color:#fff;box-shadow:0 4px 14px rgba(139,92,246,.35)}
 .btn-grad:hover{filter:brightness(1.12)}
 .btn-grad:disabled{opacity:.55;cursor:wait;filter:none}
+.modebtn.active{background:var(--grad);color:#fff;border-color:transparent}
 .btn-sm{padding:5px 10px;font-size:.75rem;border-radius:8px}
 .btn-copy{margin-left:auto}
 input[type=text],select,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px 13px;font-size:.92rem;font-family:inherit;width:100%}
@@ -128,14 +129,30 @@ footer{color:var(--muted);font-size:.78rem;text-align:center;padding:0 0 34px}
 <!-- ============ BREAK ============ -->
 <section id="sec-break" class="active">
   <div class="searchbar">
-    <div class="row">
-      <div><label class="flabel">Book title *</label><input type="text" id="qTitle" placeholder="e.g. Atomic Habits" ></div>
-      <div><label class="flabel">Author (helps accuracy)</label><input type="text" id="qAuthor" placeholder="e.g. James Clear"></div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn modebtn" id="mBook" data-action="mode" data-m="book">📖 I have a book name</button>
+      <button class="btn modebtn" id="mAuthor" data-action="mode" data-m="author">👤 I have an author name</button>
     </div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn btn-grad" data-action="go" id="goBtn" style="width:100%;padding:12px">✨ Break it down for me</button>
+    <div id="bookMode">
+      <div class="row">
+        <div><label class="flabel">Book title *</label><input type="text" id="qTitle" placeholder="e.g. Atomic Habits" ></div>
+        <div><label class="flabel">Author (helps accuracy)</label><input type="text" id="qAuthor" placeholder="e.g. James Clear"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-grad" data-action="go" id="goBtn" style="width:100%;padding:12px">✨ Break it down for me</button>
+      </div>
+      <div class="note">Works for fiction &amp; nonfiction. Obscure book? Add the author for a better match. Needs your free Gemini key — see ⚙️ Setup (1-minute, $0).</div>
     </div>
-    <div class="note">Works for fiction &amp; nonfiction. Obscure book? Add the author for a better match. Needs your free Gemini key — see ⚙️ Setup (1-minute, $0).</div>
+    <div id="authorMode" style="display:none">
+      <div class="row">
+        <div><label class="flabel">Author name *</label><input type="text" id="aName" placeholder="e.g. James Clear, Colleen Hoover…"></div>
+        <div><label class="flabel">Book name (optional)</label><input type="text" id="aBook" placeholder="optional — I'll highlight it if it's theirs"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-grad" data-action="findBooks" id="findBtn" style="width:100%;padding:12px">📚 Show every book they wrote</button>
+      </div>
+      <div class="note">✅ 100% free — no key needed for this part! Lists come from the free Open Library catalog. Tap any book to jump to its full breakdown.</div>
+    </div>
   </div>
   <div id="result"></div>
 </section>
@@ -383,6 +400,77 @@ function switchTab(t){
   try{history.replaceState(null,"","#"+t)}catch(e){}
 }
 
+/* =================== AUTHOR MODE (free — Open Library) =================== */
+let mode=load("bookbreak.mode","book");
+function setMode(m){
+  mode=m;save("bookbreak.mode",m);
+  document.getElementById("bookMode").style.display=m==="book"?"":"none";
+  document.getElementById("authorMode").style.display=m==="author"?"":"none";
+  document.getElementById("mBook").classList.toggle("active",m==="book");
+  document.getElementById("mAuthor").classList.toggle("active",m==="author");
+}
+function renderWait(msg,sub){
+  document.getElementById("result").innerHTML=`<div class="loadingcard"><div class="spin"></div><div style="font-weight:700">${msg}</div>${sub?`<div class="note">${sub}</div>`:""}</div>`;
+}
+async function fetchJSON(u){const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
+async function findBooks(){
+  const name=document.getElementById("aName").value.trim();
+  const bookQ=document.getElementById("aBook").value.trim();
+  if(!name){showToast("Type an author name first 👤");return}
+  const btn=document.getElementById("findBtn");btn.disabled=true;
+  renderWait("🔎 Looking up “"+esc(name)+"”…","searching the free Open Library catalog — no key needed");
+  let authors;
+  try{authors=((await fetchJSON("https://openlibrary.org/search/authors.json?q="+encodeURIComponent(name)+"&limit=6")).docs)||[]}
+  catch(e){btn.disabled=false;renderError("Couldn't reach the library — check connection and try again.");return}
+  btn.disabled=false;
+  if(!authors.length){renderError("No author found by that name — check spelling, or try their full name (e.g. “James Clear”).");return}
+  if(authors.length===1){loadWorks(authors[0],bookQ);return}
+  // show picker when several people share a name
+  window._authors=authors;window._bq=bookQ;
+  document.getElementById("result").innerHTML=`<div class="card"><h3><span>👥 Which ${esc(name)}?</span></h3>
+    ${authors.map((a,i)=>`<div class="librow" data-action="pickAuthor" data-i="${i}">
+      <span style="font-size:1.4rem">✍️</span>
+      <div class="lt"><b>${esc(a.name)}</b><span>${a.top_work?"best known for "+esc(a.top_work):""}${a.work_count?" · "+a.work_count+" works":""}</span></div>
+      <span class="chip">pick</span></div>`).join("")}</div>`;
+}
+function yearOf(w){
+  const m=String(w.first_publish_date||"").match(/(\d{4})/);
+  return m?parseInt(m[1]):null;
+}
+async function loadWorks(a,bookQ){
+  renderWait("📚 Collecting every book by "+esc(a.name)+"…","this can take a few seconds");
+  let works=[];
+  try{works=((await fetchJSON("https://openlibrary.org/authors/"+a.key+"/works.json?limit=250")).entries)||[]}
+  catch(e){renderError("Couldn't load their book list — try again.");return}
+  const seen=new Map();
+  works.forEach(w=>{
+    const t=(w.title||"").trim();if(!t)return;
+    const k=t.toLowerCase();
+    const y=yearOf(w);
+    const cov=(w.covers&&w.covers.length)?"https://covers.openlibrary.org/b/id/"+w.covers[0]+"-S.jpg":"";
+    if(!seen.has(k)||(y&&(!seen.get(k).y||y<seen.get(k).y)))seen.set(k,{t,y,cov:cov});
+  });
+  let list=[...seen.values()];
+  list.sort((x,y)=>(x.y||9999)-(y.y||9999));
+  const matches=bookQ?list.filter(x=>x.t.toLowerCase().includes(bookQ.toLowerCase())):[];
+  const rowEl=x=>`<div class="librow" data-action="openWork" data-t="${encodeURIComponent(x.t)}" data-a="${encodeURIComponent(a.name)}">
+      ${x.cov?`<img src="${x.cov}" style="width:34px;height:50px;object-fit:cover;border-radius:5px" alt="">`:`<span style="font-size:1.3rem">📕</span>`}
+      <div class="lt"><b>${esc(x.t)}</b></div>
+      ${x.y?`<span class="chip chip-blue">${x.y}</span>`:""}
+      <span class="chip">break it ✨</span></div>`;
+  document.getElementById("result").innerHTML=`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div><b style="font-size:1.15rem">✍️ ${esc(a.name)}</b>
+      <div class="note" style="margin-top:2px">${list.length} book${list.length===1?"":"s"} found${a.top_work?" · best known for “"+esc(a.top_work)+"”":""} · sorted by year · tap any for the full breakdown</div></div>
+      <span class="chip chip-pink">FREE ✅</span>
+    </div>
+  </div>
+  ${bookQ?`<div class="${matches.length?"ok":"err"}">${matches.length?`🎯 Yes — ${matches.length} match${matches.length>1?"es":""} for “${esc(bookQ)}”. It's below, and yes, it's theirs!`:`🤔 No “${esc(bookQ)}” in their catalog — it may be by a different author, or too new/rare for the free catalog.`}</div>`:""}
+  ${matches.length?matches.map(rowEl).join("")+`<div class="note" style="margin:6px 0">— everything else by ${esc(a.name)} —</div>`:""}
+  ${(bookQ?list.filter(x=>!matches.includes(x)):list).map(rowEl).join("")||`<div class="empty">No books listed for them in the free catalog.</div>`}`;
+}
+
 /* =================== MAIN ACTION =================== */
 async function go(){
   const title=document.getElementById("qTitle").value.trim();
@@ -408,6 +496,16 @@ document.addEventListener("click",e=>{
   const a=el.dataset.action;
   if(a==="tab")switchTab(el.dataset.tab);
   else if(a==="go")go();
+  else if(a==="mode")setMode(el.dataset.m);
+  else if(a==="findBooks")findBooks();
+  else if(a==="pickAuthor"){
+    const au=(window._authors||[])[+el.dataset.i];if(au)loadWorks(au,window._bq||"");
+  }
+  else if(a==="openWork"){
+    document.getElementById("qTitle").value=decodeURIComponent(el.dataset.t);
+    document.getElementById("qAuthor").value=decodeURIComponent(el.dataset.a);
+    setMode("book");window.scrollTo({top:0,behavior:"smooth"});go();
+  }
   else if(a==="copyAll"&&current)copyText(plainText(current.d));
   else if(a==="copySec")copyText(decodeURIComponent(el.dataset.t));
   else if(a==="saveLib")showToast("Already auto-saved to your library ✅");
@@ -431,6 +529,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&(e.target.id==="qTitle"||e.target.id==="qAuthor")){e.preventDefault();go()}
+  else if(e.key==="Enter"&&(e.target.id==="aName"||e.target.id==="aBook")){e.preventDefault();findBooks()}
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="importFile"){
@@ -444,6 +543,7 @@ document.addEventListener("change",e=>{
 /* =================== INIT =================== */
 (function init(){
   renderLib();
+  setMode(mode);
   const h=(location.hash||"").replace("#","");
   if(["break","library","settings"].includes(h))switchTab(h);
   // prefill a friendly first example so the box never looks empty
