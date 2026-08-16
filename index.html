@@ -287,14 +287,14 @@ async function breakBook(title,author){
   }
 }
 
-/* =================== COVER (Google Books, free) =================== */
+/* =================== COVER (Open Library, free) =================== */
 async function findCover(title,author){
   try{
-    const q=encodeURIComponent("intitle:"+title+(author?"+inauthor:"+author:""));
-    const r=await fetch("https://www.googleapis.com/books/v1/volumes?q="+q+"&maxResults=1&fields=items(volumeInfo(imageLinks))");
+    const qs=author?("title="+encodeURIComponent(title)+"&author="+encodeURIComponent(author)):("q="+encodeURIComponent(title));
+    const r=await fetch("https://openlibrary.org/search.json?"+qs+"&limit=1&fields=cover_i");
     const j=await r.json();
-    const img=j?.items?.[0]?.volumeInfo?.imageLinks;
-    return(img?.thumbnail||img?.smallThumbnail||"").replace("http://","https://");
+    const id=j?.docs?.[0]?.cover_i;
+    return id?("https://covers.openlibrary.org/b/id/"+id+"-M.jpg"):"";
   }catch(e){return""}
 }
 
@@ -472,24 +472,34 @@ async function loadWorks(a,bookQ){
   ${(bookQ?list.filter(x=>!matches.includes(x)):list).map(rowEl).join("")||`<div class="empty">No books listed for them in the free catalog.</div>`}`;
 }
 
-/* =================== KEY-FREE BOOK FACTS (Google Books + Open Library) =================== */
+/* =================== KEY-FREE BOOK FACTS (Open Library — no key, no limits) =================== */
 async function freeBookFacts(title,author){
-  const q=encodeURIComponent("intitle:"+title+(author?"+inauthor:"+author:""));
   try{
-    const r=await fetch("https://www.googleapis.com/books/v1/volumes?q="+q+"&maxResults=3&fields=items(volumeInfo(title,authors,publishedDate,publisher,description,categories,pageCount,averageRating,ratingsCount,imageLinks,infoLink))");
-    const j=await r.json();const items=j.items||[];
-    if(items.length){
-      items.sort((a,b)=>((b.volumeInfo.description?1:0)-(a.volumeInfo.description?1:0)));
-      const v=items[0].volumeInfo;
-      return{f:{title:v.title||title,author:(v.authors||[]).join(", ")||author||"",year:(String(v.publishedDate||"").match(/\d{4}/)||[""])[0],publisher:v.publisher||"",desc:v.description||"",cats:v.categories||[],pages:v.pageCount||"",rating:v.averageRating||"",rcount:v.ratingsCount||"",cover:((v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"").replace("http://","https://"),link:v.infoLink||""}};
-    }
-  }catch(e){}
-  try{
-    const r=await fetch("https://openlibrary.org/search.json?title="+encodeURIComponent(title)+(author?"&author="+encodeURIComponent(author):"")+"&limit=1&fields=title,author_name,first_publish_year,subject");
-    const j=await r.json();const d=(j.docs||[])[0];
-    if(d)return{f:{title:d.title,author:(d.author_name||[]).join(", "),year:d.first_publish_year||"",publisher:"",desc:"",cats:(d.subject||[]).slice(0,6),pages:"",rating:"",rcount:"",cover:"",link:"https://openlibrary.org/search?q="+encodeURIComponent(title)}};
-  }catch(e){}
-  return{error:"Couldn't find that book in the free catalogs — try adding the author's name (spelling matters!) or a fuller title."};
+    const fields="key,title,author_name,first_publish_year,cover_i,subject,ratings_average,ratings_count,number_of_pages_median";
+    const qs=author?("title="+encodeURIComponent(title)+"&author="+encodeURIComponent(author)):("q="+encodeURIComponent(title));
+    const r=await fetch("https://openlibrary.org/search.json?"+qs+"&limit=3&fields="+fields);
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    const docs=(j.docs||[]);
+    if(!docs.length)return{error:"Couldn't find that book in the free catalog — try adding the author's name, or check the spelling."};
+    const d=docs[0];
+    let desc="";
+    try{
+      const w=await fetch("https://openlibrary.org"+d.key+".json");
+      const wj=await w.json();
+      desc=typeof wj.description==="string"?wj.description:((wj.description&&wj.description.value)||"");
+      desc=desc.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,1200);
+    }catch(e){}
+    return{f:{title:d.title,author:(d.author_name||[]).join(", ")||author||"",year:d.first_publish_year||"",publisher:"",desc,
+      cats:(d.subject||[]).filter(s=>s&&s.length<28).slice(0,8),
+      pages:d.number_of_pages_median||"",
+      rating:d.ratings_average?Math.round(d.ratings_average*10)/10:"",
+      rcount:d.ratings_count||"",
+      cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-M.jpg"):"",
+      link:"https://openlibrary.org"+d.key}};
+  }catch(e){
+    return{error:"Couldn't reach the free library — check your connection and try again."};
+  }
 }
 function factsText(f){
   const L=[f.title+" — "+f.author+(f.year?" ("+f.year+")":"")];
